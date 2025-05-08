@@ -49,29 +49,14 @@ class _PostListScreenState extends State<PostListScreen> {
     final repo = PostRepositoryImpl(api, token!);
     setState(() {
       _postsFuture = GetAllPosts(repo).execute().then((posts) {
-        // Sort posts by createdAt date (newest first)
+        // Improved sorting by createdAt date (newest first)
         posts.sort((a, b) {
           try {
-            // Try to parse the dates, with fallback for invalid formats
-            DateTime dateA, dateB;
-
-            try {
-              dateB = DateTime.parse(b.createdAt);
-            } catch (e) {
-              // If parsing fails, use a default old date
-              dateB = DateTime(2000);
-            }
-
-            try {
-              dateA = DateTime.parse(a.createdAt);
-            } catch (e) {
-              // If parsing fails, use a default old date
-              dateA = DateTime(2000);
-            }
-
-            return dateB.compareTo(dateA);
+            DateTime dateA = DateTime.parse(a.createdAt);
+            DateTime dateB = DateTime.parse(b.createdAt);
+            return dateB.compareTo(dateA); // Newest first
           } catch (e) {
-            // If comparison fails for any reason, return 0 (equal)
+            // Fallback if dates can't be parsed
             print('Error sorting dates: $e');
             return 0;
           }
@@ -128,8 +113,8 @@ class _PostListScreenState extends State<PostListScreen> {
             child: Wrap(
               children: [
                 ListTile(
-                  leading: Icon(Icons.logout),
-                  title: Text('Logout'),
+                  leading: const Icon(Icons.logout),
+                  title: const Text('Logout'),
                   onTap: () async {
                     Navigator.pop(context);
                     final prefs = await SharedPreferences.getInstance();
@@ -153,7 +138,7 @@ class _PostListScreenState extends State<PostListScreen> {
             selectedIndex: _navIndex,
             onDestinationSelected: _onNavChanged,
             labelType: NavigationRailLabelType.all,
-            destinations: [
+            destinations: const [
               NavigationRailDestination(
                 icon: Icon(Icons.home),
                 label: Text('Home'),
@@ -177,7 +162,7 @@ class _PostListScreenState extends State<PostListScreen> {
             ],
           ),
 
-          VerticalDivider(thickness: 1, width: 1),
+          const VerticalDivider(thickness: 1, width: 1),
 
           // Phần nội dung chính (feed)
           Expanded(
@@ -185,22 +170,26 @@ class _PostListScreenState extends State<PostListScreen> {
               future: _postsFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState != ConnectionState.done) {
-                  return LoadingIndicator();
+                  return const LoadingIndicator();
                 }
                 if (snapshot.hasError) {
                   return Center(child: Text('Lỗi: ${snapshot.error}'));
                 }
                 final posts = snapshot.data!;
                 if (posts.isEmpty) {
-                  return Center(child: Text('Bạn chưa có bài viết nào'));
+                  return const Center(child: Text('Bạn chưa có bài viết nào'));
                 }
                 return RefreshIndicator(
                   onRefresh: _refreshFeed,
                   child: ListView.builder(
-                    padding: EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
                     itemCount: posts.length,
                     itemBuilder:
-                        (_, i) => PostItem(post: posts[i], token: token!),
+                        (_, i) => PostItem(
+                          post: posts[i],
+                          token: token!,
+                          onPostDeleted: _refreshFeed, // Pass refresh callback
+                        ),
                   ),
                 );
               },

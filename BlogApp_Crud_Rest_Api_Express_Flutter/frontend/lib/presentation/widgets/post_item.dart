@@ -1,111 +1,218 @@
 // File: lib/presentation/widgets/post_item.dart
 
 import 'package:flutter/material.dart';
-import '../screens/post_detail_screen.dart';
+import 'package:http/http.dart' as http;
 import '../../domain/entities/post.dart';
 import '../../config/api_config.dart';
 
 class PostItem extends StatelessWidget {
   final Post post;
   final String token;
+  final VoidCallback onPostDeleted; // Add callback function
 
-  const PostItem({required this.post, required this.token, super.key});
+  const PostItem({
+    Key? key,
+    required this.post,
+    required this.token,
+    required this.onPostDeleted, // Required parameter
+  }) : super(key: key);
 
-  String _formatDate(String dateStr) {
+  // Format date to be more readable
+  String _formatDate(String dateString) {
     try {
-      // Try to parse the date string
-      final date = DateTime.parse(dateStr);
-      return 'Đăng vào ${date.toString().split('.').first}';
+      final date = DateTime.parse(dateString);
+      final now = DateTime.now();
+      final difference = now.difference(date);
+
+      if (difference.inDays > 7) {
+        // Format as date if older than a week
+        return '${date.day}/${date.month}/${date.year}';
+      } else if (difference.inDays > 0) {
+        // Days ago
+        return '${difference.inDays} days ago';
+      } else if (difference.inHours > 0) {
+        // Hours ago
+        return '${difference.inHours} hours ago';
+      } else if (difference.inMinutes > 0) {
+        // Minutes ago
+        return '${difference.inMinutes} minutes ago';
+      } else {
+        // Just now
+        return 'Just now';
+      }
     } catch (e) {
-      // If parsing fails, return the original string
-      return 'Đăng vào $dateStr';
+      // Fallback if date can't be parsed
+      return dateString;
     }
   }
 
-  String _getImageUrl(String? imagePath) {
-    if (imagePath == null || imagePath.isEmpty) {
-      return '';
-    }
+  // Delete post function
+  Future<void> _deletePost(BuildContext context) async {
+    // Show confirmation dialog
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Delete Post'),
+            content: const Text('Are you sure you want to delete this post?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text(
+                  'Delete',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
+          ),
+    );
 
-    // Check if the image URL is already a full URL
-    if (imagePath.startsWith('http')) {
-      return imagePath;
-    }
+    if (shouldDelete != true) return;
 
-    // Otherwise, prepend the base URL
-    return '${ApiConfig.baseUrl}$imagePath';
+    try {
+      // Make API call to delete post
+      final url = Uri.parse(
+        '${ApiConfig.baseUrl}${ApiConfig.posts}/${post.id}',
+      );
+      final response = await http.delete(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Post deleted successfully')),
+        );
+
+        // Call the callback to refresh the post list
+        onPostDeleted();
+      } else {
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete post: ${response.body}')),
+        );
+      }
+    } catch (e) {
+      // Show error message
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = _getImageUrl(post.image);
-
     return Card(
-      margin: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      clipBehavior: Clip.antiAlias,
-      elevation: 3,
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => PostDetailScreen(postId: post.id, token: token),
-            ),
-          );
-        },
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 1) Image if available
-            if (imageUrl.isNotEmpty)
-              Container(
-                height: 200,
-                child: Image.network(
-                  imageUrl,
-                  fit: BoxFit.cover,
-                  height: 200,
-                  loadingBuilder: (ctx, child, progress) {
-                    if (progress == null) return child;
-                    return Container(
-                      height: 200,
-                      color: Colors.grey[200],
-                      child: Center(child: CircularProgressIndicator()),
-                    );
-                  },
-                  errorBuilder: (ctx, error, stack) {
-                    print('Image error in list: $error');
-                    return Container(
-                      height: 200,
-                      color: Colors.grey[200],
-                      child: Center(child: Icon(Icons.broken_image, size: 48)),
-                    );
-                  },
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: 2,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header: Avatar, UserID, Location, and Actions
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                // Avatar placeholder
+                const CircleAvatar(child: Icon(Icons.person)),
+                const SizedBox(width: 12),
+                // User ID and location
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'User: ${post.userId}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      if (post.address != null && post.address!.isNotEmpty)
+                        Text(
+                          post.address!,
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-
-            // 2) Text if available
-            if (post.text != null && post.text!.isNotEmpty)
-              Padding(
-                padding: EdgeInsets.all(16),
-                child: Text(
-                  post.text!,
-                  style: TextStyle(fontSize: 16, height: 1.4),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
+                // Actions menu (more options)
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    if (value == 'delete') {
+                      _deletePost(context);
+                    }
+                  },
+                  itemBuilder:
+                      (context) => [
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Text('Delete'),
+                        ),
+                        const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                      ],
                 ),
-              ),
-
-            // 3) Posted date
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text(
-                _formatDate(post.createdAt),
-                style: TextStyle(color: Colors.grey[600], fontSize: 12),
-              ),
+              ],
             ),
-          ],
-        ),
+          ),
+
+          // Image (if available)
+          if (post.image != null && post.image!.isNotEmpty)
+            Image.network(
+              post.image!.startsWith('http')
+                  ? post.image!
+                  : '${ApiConfig.baseUrl}${post.image}',
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: 300,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  width: double.infinity,
+                  height: 300,
+                  color: Colors.grey[200],
+                  child: const Center(
+                    child: Icon(Icons.error, size: 48, color: Colors.grey),
+                  ),
+                );
+              },
+            ),
+
+          // Caption/Text
+          if (post.text != null && post.text!.isNotEmpty)
+            Padding(padding: const EdgeInsets.all(12), child: Text(post.text!)),
+
+          // Footer: Like, Comment, Date
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                // Like button
+                const Icon(Icons.favorite_border),
+                const SizedBox(width: 8),
+                const Text('Like'),
+                const SizedBox(width: 16),
+                // Comment button
+                const Icon(Icons.comment_outlined),
+                const SizedBox(width: 8),
+                const Text('Comment'),
+                const Spacer(),
+                // Date/time
+                Text(
+                  _formatDate(post.createdAt),
+                  style: const TextStyle(color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

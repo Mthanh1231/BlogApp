@@ -8,13 +8,13 @@ import '../../config/api_config.dart';
 class PostItem extends StatelessWidget {
   final Post post;
   final String token;
-  final VoidCallback onPostDeleted; // Add callback function
+  final VoidCallback onPostDeleted;
 
   const PostItem({
     Key? key,
     required this.post,
     required this.token,
-    required this.onPostDeleted, // Required parameter
+    required this.onPostDeleted,
   }) : super(key: key);
 
   // Try to parse date with multiple formats
@@ -136,109 +136,142 @@ class PostItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: 2,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header: Avatar, UserID, Location, and Actions
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                // Avatar placeholder
-                const CircleAvatar(child: Icon(Icons.person)),
-                const SizedBox(width: 12),
-                // User ID and location
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'User: ${post.userId}',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      if (post.address != null && post.address!.isNotEmpty)
+    return GestureDetector(
+      // Add tap handler to open detail page
+      onTap: () {
+        Navigator.pushNamed(
+          context,
+          '/detail',
+          arguments: {'postId': post.id, 'token': token},
+        ).then((result) {
+          // Refresh list if post was edited or deleted
+          if (result == true) {
+            onPostDeleted();
+          }
+        });
+      },
+      child: Card(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        elevation: 2,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header: Avatar, UserID, Location, and Actions
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  // Avatar placeholder
+                  const CircleAvatar(child: Icon(Icons.person)),
+                  const SizedBox(width: 12),
+                  // User ID and location
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          post.address!,
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 12,
+                          'User: ${post.userId}',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        if (post.address != null && post.address!.isNotEmpty)
+                          Text(
+                            post.address!,
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 12,
+                            ),
                           ),
-                        ),
-                    ],
-                  ),
-                ),
-                // Actions menu (more options)
-                PopupMenuButton<String>(
-                  onSelected: (value) {
-                    if (value == 'delete') {
-                      _deletePost(context);
-                    }
-                  },
-                  itemBuilder:
-                      (context) => [
-                        const PopupMenuItem(
-                          value: 'delete',
-                          child: Text('Delete'),
-                        ),
-                        const PopupMenuItem(value: 'edit', child: Text('Edit')),
                       ],
-                ),
-              ],
-            ),
-          ),
-
-          // Image (if available)
-          if (post.image != null && post.image!.isNotEmpty)
-            Image.network(
-              post.image!.startsWith('http')
-                  ? post.image!
-                  : '${ApiConfig.baseUrl}${post.image}',
-              fit: BoxFit.cover,
-              width: double.infinity,
-              height: 300,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  width: double.infinity,
-                  height: 300,
-                  color: Colors.grey[200],
-                  child: const Center(
-                    child: Icon(Icons.error, size: 48, color: Colors.grey),
+                    ),
                   ),
-                );
-              },
+                  // Actions menu (more options)
+                  PopupMenuButton<String>(
+                    onSelected: (value) {
+                      if (value == 'delete') {
+                        _deletePost(context);
+                      } else if (value == 'edit') {
+                        // Navigate to edit page
+                        Navigator.pushNamed(
+                          context,
+                          '/edit',
+                          arguments: {'id': post.id, 'token': token},
+                        ).then((result) {
+                          // Refresh if post was edited
+                          if (result == true) {
+                            onPostDeleted();
+                          }
+                        });
+                      }
+                    },
+                    itemBuilder:
+                        (context) => [
+                          const PopupMenuItem(
+                            value: 'edit',
+                            child: Text('Edit'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Text('Delete'),
+                          ),
+                        ],
+                  ),
+                ],
+              ),
             ),
 
-          // Caption/Text
-          if (post.text != null && post.text!.isNotEmpty)
-            Padding(padding: const EdgeInsets.all(12), child: Text(post.text!)),
+            // Image (if available)
+            if (post.image != null && post.image!.isNotEmpty)
+              Image.network(
+                post.image!.startsWith('http')
+                    ? post.image!
+                    : '${ApiConfig.baseUrl}${post.image}',
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: 300,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    width: double.infinity,
+                    height: 300,
+                    color: Colors.grey[200],
+                    child: const Center(
+                      child: Icon(Icons.error, size: 48, color: Colors.grey),
+                    ),
+                  );
+                },
+              ),
 
-          // Footer: Like, Comment, Date
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                // Like button
-                const Icon(Icons.favorite_border),
-                const SizedBox(width: 8),
-                const Text('Like'),
-                const SizedBox(width: 16),
-                // Comment button
-                const Icon(Icons.comment_outlined),
-                const SizedBox(width: 8),
-                const Text('Comment'),
-                const Spacer(),
-                // Date/time
-                Text(
-                  _formatDate(post.createdAt),
-                  style: const TextStyle(color: Colors.grey),
-                ),
-              ],
+            // Caption/Text
+            if (post.text != null && post.text!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Text(post.text!),
+              ),
+
+            // Footer: Like, Comment, Date
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  // Like button
+                  const Icon(Icons.favorite_border),
+                  const SizedBox(width: 8),
+                  const Text('Like'),
+                  const SizedBox(width: 16),
+                  // Comment button
+                  const Icon(Icons.comment_outlined),
+                  const SizedBox(width: 8),
+                  const Text('Comment'),
+                  const Spacer(),
+                  // Date/time
+                  Text(
+                    _formatDate(post.createdAt),
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -26,8 +26,27 @@ class BlogApp extends StatelessWidget {
         '/register': (_) => RegisterScreen(),
         '/posts': (_) => PostListScreen(),
         '/create': (_) => CreatePostScreen(),
-        '/edit': (_) => EditPostScreen(),
         '/profile': (_) => ProfileScreen(),
+        '/edit': (_) => EditPostScreen(),
+        '/detail':
+            (_) => PostDetailScreen(
+              postId: '', // These will be overridden by arguments
+              token: '',
+            ),
+      },
+      onGenerateRoute: (settings) {
+        // This is needed to handle route arguments properly
+        if (settings.name == '/detail') {
+          final args = settings.arguments as Map;
+          return MaterialPageRoute(
+            builder:
+                (context) => PostDetailScreen(
+                  postId: args['postId'],
+                  token: args['token'],
+                ),
+          );
+        }
+        return null;
       },
     );
   }

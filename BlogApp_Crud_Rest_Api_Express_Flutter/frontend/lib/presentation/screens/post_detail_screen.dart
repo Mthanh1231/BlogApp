@@ -32,6 +32,10 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   @override
   void initState() {
     super.initState();
+    _loadPostData();
+  }
+
+  void _loadPostData() {
     final api = ApiService(http.Client());
     final repo = PostRepositoryImpl(api, widget.token);
     _postFuture = GetPostDetail(repo).execute(widget.postId);
@@ -147,11 +151,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                       // Refresh post details if edited
                       if (result == true) {
                         setState(() {
-                          final api = ApiService(http.Client());
-                          final repo = PostRepositoryImpl(api, widget.token);
-                          _postFuture = GetPostDetail(
-                            repo,
-                          ).execute(widget.postId);
+                          _loadPostData();
                         });
                       }
                     },
@@ -176,10 +176,12 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         future: _postFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done)
-            return LoadingIndicator();
+            return Center(child: LoadingIndicator());
 
           if (snapshot.hasError)
             return Center(child: Text('Error loading post: ${snapshot.error}'));
+
+          if (!snapshot.hasData) return Center(child: Text('Post not found'));
 
           final post = snapshot.data!;
 

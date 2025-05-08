@@ -21,7 +21,7 @@ class PostListScreen extends StatefulWidget {
 }
 
 class _PostListScreenState extends State<PostListScreen> {
-  // Khởi tạo tránh LateInitializationError
+  // Initialize to avoid LateInitializationError
   late Future<List<Post>> _postsFuture = Future.value([]);
   String? token;
   int _navIndex = 0;
@@ -32,7 +32,7 @@ class _PostListScreenState extends State<PostListScreen> {
     _loadTokenAndPosts();
   }
 
-  // Load token và fetch lần đầu
+  // Load token and fetch posts initially
   Future<void> _loadTokenAndPosts() async {
     final prefs = await SharedPreferences.getInstance();
     token = prefs.getString('token');
@@ -70,13 +70,13 @@ class _PostListScreenState extends State<PostListScreen> {
     }
   }
 
-  // Hàm gọi API để fetch posts
+  // Fetch posts from API
   void _fetchPosts() {
     final api = ApiService(http.Client());
     final repo = PostRepositoryImpl(api, token!);
     setState(() {
       _postsFuture = GetAllPosts(repo).execute().then((posts) {
-        // Improved sorting by createdAt date (newest first) with more robust date parsing
+        // Sort by createdAt date (newest first) with robust date parsing
         posts.sort((a, b) {
           DateTime? dateA = _tryParseDate(a.createdAt);
           DateTime? dateB = _tryParseDate(b.createdAt);
@@ -99,13 +99,13 @@ class _PostListScreenState extends State<PostListScreen> {
     });
   }
 
-  // Refresh khi kéo thả
+  // Pull to refresh
   Future<void> _refreshFeed() async {
     _fetchPosts();
     await _postsFuture;
   }
 
-  // Xử lý chọn nút NavigationRail
+  // Handle navigation rail selection
   void _onNavChanged(int index) async {
     setState(() => _navIndex = index);
 
@@ -114,17 +114,18 @@ class _PostListScreenState extends State<PostListScreen> {
         await _refreshFeed();
         break;
       case 1: // Search
+        // NavigationRail handles restoring selection
         Navigator.pushNamed(context, '/search');
         break;
       case 2: // Create
-        // Đợi kết quả từ CreatePostScreen
+        // Wait for result from CreatePostScreen
         final result = await Navigator.pushNamed(
           context,
           '/create',
           arguments: token,
         );
         if (result is bool && result) {
-          // nếu share thành công, refresh feed
+          // If post created successfully, refresh feed
           await _refreshFeed();
         }
         break;
@@ -137,7 +138,7 @@ class _PostListScreenState extends State<PostListScreen> {
     }
   }
 
-  // Menu "More" (Logout)
+  // "More" menu (Logout)
   void _showMoreMenu() {
     showModalBottomSheet(
       context: context,
@@ -166,7 +167,7 @@ class _PostListScreenState extends State<PostListScreen> {
     return Scaffold(
       body: Row(
         children: [
-          // Cột điều hướng dọc
+          // Navigation rail
           NavigationRail(
             selectedIndex: _navIndex,
             onDestinationSelected: _onNavChanged,
@@ -197,7 +198,7 @@ class _PostListScreenState extends State<PostListScreen> {
 
           const VerticalDivider(thickness: 1, width: 1),
 
-          // Phần nội dung chính (feed)
+          // Main content (feed)
           Expanded(
             child: FutureBuilder<List<Post>>(
               future: _postsFuture,
@@ -206,11 +207,11 @@ class _PostListScreenState extends State<PostListScreen> {
                   return const LoadingIndicator();
                 }
                 if (snapshot.hasError) {
-                  return Center(child: Text('Lỗi: ${snapshot.error}'));
+                  return Center(child: Text('Error: ${snapshot.error}'));
                 }
                 final posts = snapshot.data!;
                 if (posts.isEmpty) {
-                  return const Center(child: Text('Bạn chưa có bài viết nào'));
+                  return const Center(child: Text('No posts yet'));
                 }
                 return RefreshIndicator(
                   onRefresh: _refreshFeed,

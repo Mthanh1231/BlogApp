@@ -25,24 +25,80 @@ class PostDetailScreen extends StatefulWidget {
 }
 
 class _PostDetailScreenState extends State<PostDetailScreen> {
-  late Future<Post> _postFuture;
-  late DeletePost _deletePostUseCase;
+  // Initialize with a placeholder future to avoid LateInitializationError
+  Future<Post>? _postFuture;
+  DeletePost? _deletePostUseCase;
   bool _isDeleting = false;
+  late String _token;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadPostData();
+    // Initialize with the token from widget
+    _token = widget.token;
+    // Trigger data loading after widget initialization
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadPostData();
+    });
   }
 
-  void _loadPostData() {
-    final api = ApiService(http.Client());
-    final repo = PostRepositoryImpl(api, widget.token);
-    _postFuture = GetPostDetail(repo).execute(widget.postId);
-    _deletePostUseCase = DeletePost(repo);
+  // Function to ensure we have a valid token
+  Future<bool> _ensureToken() async {
+    // If token is empty or null, try to get it from SharedPreferences
+    if (_token.isEmpty) {
+      final prefs = await SharedPreferences.getInstance();
+      final storedToken = prefs.getString('token');
+      if (storedToken != null && storedToken.isNotEmpty) {
+        setState(() {
+          _token = storedToken;
+        });
+        return true;
+      } else {
+        // If still no token, redirect to login
+        Navigator.pushReplacementNamed(context, '/login');
+        return false;
+      }
+    }
+    return true;
+  }
+
+  void _loadPostData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    // Make sure we have a token
+    final hasToken = await _ensureToken();
+    if (!hasToken) return;
+
+    try {
+      final api = ApiService(http.Client());
+      final repo = PostRepositoryImpl(api, _token);
+
+      // Initialize the futures
+      _deletePostUseCase = DeletePost(repo);
+      _postFuture = GetPostDetail(repo).execute(widget.postId);
+
+      setState(() {
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error initializing data: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   Future _deletePost() async {
+    if (_deletePostUseCase == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Cannot delete post: Not initialized')),
+      );
+      return;
+    }
+
     try {
       setState(() => _isDeleting = true);
 
@@ -71,7 +127,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         return;
       }
 
-      await _deletePostUseCase.execute(widget.postId);
+      await _deletePostUseCase!.execute(widget.postId);
 
       // Show success message
       ScaffoldMessenger.of(
@@ -139,20 +195,19 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           IconButton(
             icon: Icon(Icons.edit),
             onPressed:
-                _isDeleting
+                _isDeleting || _isLoading
                     ? null
                     : () async {
                       final result = await Navigator.pushNamed(
                         context,
                         '/edit',
-                        arguments: {'id': widget.postId, 'token': widget.token},
+                        arguments: {'id': widget.postId, 'token': _token},
                       );
 
-                      // Refresh post details if edited
+                      // Check if we need to refresh the post list after editing
                       if (result == true) {
-                        setState(() {
-                          _loadPostData();
-                        });
+                        // Pop back to PostListScreen with refresh signal
+                        Navigator.pop(context, true);
                       }
                     },
           ),
@@ -168,50 +223,66 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                       ),
                     )
                     : Icon(Icons.delete),
-            onPressed: _isDeleting ? null : _deletePost,
+            onPressed: _isDeleting || _isLoading ? null : _deletePost,
           ),
         ],
       ),
-      body: FutureBuilder<Post>(
-        future: _postFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done)
-            return Center(child: LoadingIndicator());
+      body:
+          _isLoading || _postFuture == null
+              ? Center(child: LoadingIndicator())
+              : FutureBuilder<Post>(
+                future: _postFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState != ConnectionState.done)
+                    return Center(child: LoadingIndicator());
 
-          if (snapshot.hasError)
-            return Center(child: Text('Error loading post: ${snapshot.error}'));
+                  if (snapshot.hasError)
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('Error loading post: ${snapshot.error}'),
+                          SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: _loadPostData,
+                            child: Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    );
 
-          if (!snapshot.hasData) return Center(child: Text('Post not found'));
+                  if (!snapshot.hasData)
+                    return Center(child: Text('Post not found'));
 
-          final post = snapshot.data!;
+                  final post = snapshot.data!;
 
-          return SingleChildScrollView(
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildImage(post.image),
-                  SizedBox(height: 16),
-                  if (post.text != null && post.text!.isNotEmpty)
-                    Text(post.text!, style: TextStyle(fontSize: 18)),
-                  SizedBox(height: 8),
-                  if (post.address != null && post.address!.isNotEmpty)
-                    Text(
-                      post.address!,
-                      style: TextStyle(color: Colors.grey[700]),
+                  return SingleChildScrollView(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildImage(post.image),
+                          SizedBox(height: 16),
+                          if (post.text != null && post.text!.isNotEmpty)
+                            Text(post.text!, style: TextStyle(fontSize: 18)),
+                          SizedBox(height: 8),
+                          if (post.address != null && post.address!.isNotEmpty)
+                            Text(
+                              post.address!,
+                              style: TextStyle(color: Colors.grey[700]),
+                            ),
+                          SizedBox(height: 16),
+                          Text(
+                            'Created: ${post.createdAt}',
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                        ],
+                      ),
                     ),
-                  SizedBox(height: 16),
-                  Text(
-                    'Created: ${post.createdAt}',
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                ],
+                  );
+                },
               ),
-            ),
-          );
-        },
-      ),
     );
   }
 }

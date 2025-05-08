@@ -28,24 +28,60 @@ class BlogApp extends StatelessWidget {
         '/create': (_) => CreatePostScreen(),
         '/profile': (_) => ProfileScreen(),
         '/edit': (_) => EditPostScreen(),
-        '/detail':
-            (_) => PostDetailScreen(
-              postId: '', // These will be overridden by arguments
-              token: '',
-            ),
+        // We'll handle detail screen in onGenerateRoute
       },
       onGenerateRoute: (settings) {
-        // This is needed to handle route arguments properly
         if (settings.name == '/detail') {
-          final args = settings.arguments as Map;
+          // Make sure to handle cases where arguments might be missing
+          final args = settings.arguments as Map<String, dynamic>?;
+
+          // Default values to prevent null errors
+          final String postId = args?['postId'] ?? '';
+          final String token = args?['token'] ?? '';
+
+          // Show error screen if arguments are invalid
+          if (postId.isEmpty) {
+            return MaterialPageRoute(
+              builder:
+                  (context) => Scaffold(
+                    appBar: AppBar(title: Text('Error')),
+                    body: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('Invalid post ID or missing authentication.'),
+                          SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed:
+                                () => Navigator.pushReplacementNamed(
+                                  context,
+                                  '/posts',
+                                ),
+                            child: Text('Return to Posts'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+            );
+          }
+
+          // Create the detail screen with proper arguments
           return MaterialPageRoute(
             builder:
-                (context) => PostDetailScreen(
-                  postId: args['postId'],
-                  token: args['token'],
-                ),
+                (context) => PostDetailScreen(postId: postId, token: token),
           );
         }
+
+        // Handle Edit Post route
+        if (settings.name == '/edit') {
+          final args = settings.arguments as Map<String, dynamic>?;
+          return MaterialPageRoute(
+            builder: (context) => EditPostScreen(),
+            settings: RouteSettings(name: '/edit', arguments: args),
+          );
+        }
+
         return null;
       },
     );

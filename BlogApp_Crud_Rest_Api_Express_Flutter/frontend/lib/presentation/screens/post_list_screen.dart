@@ -23,7 +23,7 @@ class PostListScreen extends StatefulWidget {
 class _PostListScreenState extends State<PostListScreen> {
   // Initialize to avoid LateInitializationError
   late Future<List<Post>> _postsFuture = Future.value([]);
-  String? token;
+  String token = ''; // Default to empty string
   int _navIndex = 0;
 
   @override
@@ -35,11 +35,19 @@ class _PostListScreenState extends State<PostListScreen> {
   // Load token and fetch posts initially
   Future<void> _loadTokenAndPosts() async {
     final prefs = await SharedPreferences.getInstance();
-    token = prefs.getString('token');
-    if (token == null) {
+    String? storedToken = prefs.getString('token');
+
+    // Redirect to login if no token is available
+    if (storedToken == null || storedToken.isEmpty) {
       Navigator.pushReplacementNamed(context, '/login');
       return;
     }
+
+    // Set token and fetch posts
+    setState(() {
+      token = storedToken;
+    });
+
     _fetchPosts();
   }
 
@@ -72,8 +80,13 @@ class _PostListScreenState extends State<PostListScreen> {
 
   // Fetch posts from API
   void _fetchPosts() {
+    if (token.isEmpty) {
+      print("Cannot fetch posts: Token is empty");
+      return;
+    }
+
     final api = ApiService(http.Client());
-    final repo = PostRepositoryImpl(api, token!);
+    final repo = PostRepositoryImpl(api, token);
     setState(() {
       _postsFuture = GetAllPosts(repo).execute().then((posts) {
         // Sort by createdAt date (newest first) with robust date parsing
@@ -207,12 +220,27 @@ class _PostListScreenState extends State<PostListScreen> {
                   return const LoadingIndicator();
                 }
                 if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('Error: ${snapshot.error}'),
+                        SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _refreshFeed,
+                          child: Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  );
                 }
-                final posts = snapshot.data!;
-                if (posts.isEmpty) {
+
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return const Center(child: Text('No posts yet'));
                 }
+
+                final posts = snapshot.data!;
+
                 return RefreshIndicator(
                   onRefresh: _refreshFeed,
                   child: ListView.builder(
@@ -221,7 +249,8 @@ class _PostListScreenState extends State<PostListScreen> {
                     itemBuilder:
                         (_, i) => PostItem(
                           post: posts[i],
-                          token: token!,
+                          token:
+                              token, // Make sure token is being passed correctly
                           onPostDeleted: _refreshFeed, // Pass refresh callback
                         ),
                   ),

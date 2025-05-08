@@ -26,8 +26,8 @@ const PostSchema = new Schema({
   },
   postedAt: {
     type: Date,
-    default: Date.now,
-    select: false
+    default: Date.now
+    // Removed select: false to make this field visible in API responses
   },
   editCount: { type: Number, default: 0 },
   editHistory: [
@@ -36,6 +36,9 @@ const PostSchema = new Schema({
       diff: Schema.Types.Mixed
     }
   ]
+}, {
+  // Add timestamps option to automatically create createdAt and updatedAt fields
+  timestamps: true
 });
 
 // – ensure ít nhất một trong `image` hoặc `text` phải có

@@ -10,10 +10,12 @@ import 'presentation/screens/edit_post_screen.dart';
 import 'presentation/screens/profile_screen.dart';
 
 void main() => runApp(BlogApp());
+
 class BlogApp extends StatelessWidget {
   const BlogApp({super.key});
 
-  @override Widget build(BuildContext context) {
+  @override
+  Widget build(BuildContext context) {
     return MaterialApp(
       title: 'BlogApp',
       theme: ThemeData(primarySwatch: Colors.blue),

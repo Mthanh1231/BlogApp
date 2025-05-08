@@ -27,6 +27,7 @@ class PostDetailScreen extends StatefulWidget {
 class _PostDetailScreenState extends State<PostDetailScreen> {
   late Future<Post> _postFuture;
   late DeletePost _deletePostUseCase;
+  bool _isDeleting = false;
 
   @override
   void initState() {
@@ -38,8 +39,49 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   }
 
   Future _deletePost() async {
-    await _deletePostUseCase.execute(widget.postId);
-    Navigator.pop(context);
+    try {
+      setState(() => _isDeleting = true);
+
+      // Show confirmation dialog
+      final shouldDelete = await showDialog<bool>(
+        context: context,
+        builder:
+            (context) => AlertDialog(
+              title: Text('Delete Post'),
+              content: Text('Are you sure you want to delete this post?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: Text('Delete', style: TextStyle(color: Colors.red)),
+                ),
+              ],
+            ),
+      );
+
+      if (shouldDelete != true) {
+        setState(() => _isDeleting = false);
+        return;
+      }
+
+      await _deletePostUseCase.execute(widget.postId);
+
+      // Show success message
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Post deleted successfully')));
+
+      // Return true to trigger a refresh on post list screen
+      Navigator.pop(context, true);
+    } catch (e) {
+      setState(() => _isDeleting = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error deleting post: $e')));
+    }
   }
 
   Widget _buildImage(String? imageUrl) {
@@ -93,13 +135,41 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           IconButton(
             icon: Icon(Icons.edit),
             onPressed:
-                () => Navigator.pushNamed(
-                  context,
-                  '/edit',
-                  arguments: {'id': widget.postId, 'token': widget.token},
-                ),
+                _isDeleting
+                    ? null
+                    : () async {
+                      final result = await Navigator.pushNamed(
+                        context,
+                        '/edit',
+                        arguments: {'id': widget.postId, 'token': widget.token},
+                      );
+
+                      // Refresh post details if edited
+                      if (result == true) {
+                        setState(() {
+                          final api = ApiService(http.Client());
+                          final repo = PostRepositoryImpl(api, widget.token);
+                          _postFuture = GetPostDetail(
+                            repo,
+                          ).execute(widget.postId);
+                        });
+                      }
+                    },
           ),
-          IconButton(icon: Icon(Icons.delete), onPressed: _deletePost),
+          IconButton(
+            icon:
+                _isDeleting
+                    ? SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                    : Icon(Icons.delete),
+            onPressed: _isDeleting ? null : _deletePost,
+          ),
         ],
       ),
       body: FutureBuilder<Post>(

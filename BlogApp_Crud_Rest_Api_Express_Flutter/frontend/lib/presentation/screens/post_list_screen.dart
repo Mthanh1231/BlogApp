@@ -1,4 +1,4 @@
-//file: post_list_screen.dart 
+//file: post_list_screen.dart
 // File: lib/presentation/screens/post_list_screen.dart
 
 import 'package:flutter/material.dart';
@@ -48,7 +48,36 @@ class _PostListScreenState extends State<PostListScreen> {
     final api = ApiService(http.Client());
     final repo = PostRepositoryImpl(api, token!);
     setState(() {
-      _postsFuture = GetAllPosts(repo).execute();
+      _postsFuture = GetAllPosts(repo).execute().then((posts) {
+        // Sort posts by createdAt date (newest first)
+        posts.sort((a, b) {
+          try {
+            // Try to parse the dates, with fallback for invalid formats
+            DateTime dateA, dateB;
+
+            try {
+              dateB = DateTime.parse(b.createdAt);
+            } catch (e) {
+              // If parsing fails, use a default old date
+              dateB = DateTime(2000);
+            }
+
+            try {
+              dateA = DateTime.parse(a.createdAt);
+            } catch (e) {
+              // If parsing fails, use a default old date
+              dateA = DateTime(2000);
+            }
+
+            return dateB.compareTo(dateA);
+          } catch (e) {
+            // If comparison fails for any reason, return 0 (equal)
+            print('Error sorting dates: $e');
+            return 0;
+          }
+        });
+        return posts;
+      });
     });
   }
 
@@ -94,22 +123,23 @@ class _PostListScreenState extends State<PostListScreen> {
   void _showMoreMenu() {
     showModalBottomSheet(
       context: context,
-      builder: (_) => SafeArea(
-        child: Wrap(
-          children: [
-            ListTile(
-              leading: Icon(Icons.logout),
-              title: Text('Logout'),
-              onTap: () async {
-                Navigator.pop(context);
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.remove('token');
-                Navigator.pushReplacementNamed(context, '/login');
-              },
+      builder:
+          (_) => SafeArea(
+            child: Wrap(
+              children: [
+                ListTile(
+                  leading: Icon(Icons.logout),
+                  title: Text('Logout'),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.remove('token');
+                    Navigator.pushReplacementNamed(context, '/login');
+                  },
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
@@ -124,11 +154,26 @@ class _PostListScreenState extends State<PostListScreen> {
             onDestinationSelected: _onNavChanged,
             labelType: NavigationRailLabelType.all,
             destinations: [
-              NavigationRailDestination(icon: Icon(Icons.home),    label: Text('Home')),
-              NavigationRailDestination(icon: Icon(Icons.search),  label: Text('Search')),
-              NavigationRailDestination(icon: Icon(Icons.create),  label: Text('Create')),
-              NavigationRailDestination(icon: Icon(Icons.person),  label: Text('Profile')),
-              NavigationRailDestination(icon: Icon(Icons.more_horiz), label: Text('More')),
+              NavigationRailDestination(
+                icon: Icon(Icons.home),
+                label: Text('Home'),
+              ),
+              NavigationRailDestination(
+                icon: Icon(Icons.search),
+                label: Text('Search'),
+              ),
+              NavigationRailDestination(
+                icon: Icon(Icons.create),
+                label: Text('Create'),
+              ),
+              NavigationRailDestination(
+                icon: Icon(Icons.person),
+                label: Text('Profile'),
+              ),
+              NavigationRailDestination(
+                icon: Icon(Icons.more_horiz),
+                label: Text('More'),
+              ),
             ],
           ),
 
@@ -154,7 +199,8 @@ class _PostListScreenState extends State<PostListScreen> {
                   child: ListView.builder(
                     padding: EdgeInsets.symmetric(vertical: 8),
                     itemCount: posts.length,
-                    itemBuilder: (_, i) => PostItem(post: posts[i], token: token!),
+                    itemBuilder:
+                        (_, i) => PostItem(post: posts[i], token: token!),
                   ),
                 );
               },

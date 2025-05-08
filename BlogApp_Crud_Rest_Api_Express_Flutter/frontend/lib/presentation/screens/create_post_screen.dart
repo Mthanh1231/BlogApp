@@ -87,7 +87,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       ).showSnackBar(const SnackBar(content: Text('Đã chia sẻ thành công!')));
 
       // 6) Return true so PostListScreen auto-refreshes
-      if (mounted) Navigator.pop(context, true);
+      if (mounted) {
+        // Return true to indicate successful post creation
+        Navigator.pop(context, true);
+      }
     } catch (e) {
       ScaffoldMessenger.of(
         context,

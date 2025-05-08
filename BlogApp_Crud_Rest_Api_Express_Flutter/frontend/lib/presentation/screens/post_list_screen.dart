@@ -43,23 +43,56 @@ class _PostListScreenState extends State<PostListScreen> {
     _fetchPosts();
   }
 
+  // Helper function to safely parse dates
+  DateTime? _tryParseDate(String dateString) {
+    if (dateString.isEmpty) {
+      return null;
+    }
+
+    try {
+      // Try standard ISO format
+      return DateTime.parse(dateString);
+    } catch (_) {
+      try {
+        // Try Unix timestamp (milliseconds)
+        return DateTime.fromMillisecondsSinceEpoch(int.parse(dateString));
+      } catch (_) {
+        try {
+          // Try Unix timestamp (seconds)
+          return DateTime.fromMillisecondsSinceEpoch(
+            int.parse(dateString) * 1000,
+          );
+        } catch (_) {
+          // Could not parse the date
+          return null;
+        }
+      }
+    }
+  }
+
   // Hàm gọi API để fetch posts
   void _fetchPosts() {
     final api = ApiService(http.Client());
     final repo = PostRepositoryImpl(api, token!);
     setState(() {
       _postsFuture = GetAllPosts(repo).execute().then((posts) {
-        // Improved sorting by createdAt date (newest first)
+        // Improved sorting by createdAt date (newest first) with more robust date parsing
         posts.sort((a, b) {
-          try {
-            DateTime dateA = DateTime.parse(a.createdAt);
-            DateTime dateB = DateTime.parse(b.createdAt);
+          DateTime? dateA = _tryParseDate(a.createdAt);
+          DateTime? dateB = _tryParseDate(b.createdAt);
+
+          // If both dates are valid, compare them
+          if (dateA != null && dateB != null) {
             return dateB.compareTo(dateA); // Newest first
-          } catch (e) {
-            // Fallback if dates can't be parsed
-            print('Error sorting dates: $e');
-            return 0;
           }
+          // If only one date is valid, put the valid one first
+          else if (dateA != null) {
+            return -1;
+          } else if (dateB != null) {
+            return 1;
+          }
+          // If neither date is valid, don't change order
+          return 0;
         });
         return posts;
       });

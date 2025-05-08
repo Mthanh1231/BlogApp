@@ -17,32 +17,58 @@ class PostItem extends StatelessWidget {
     required this.onPostDeleted, // Required parameter
   }) : super(key: key);
 
+  // Try to parse date with multiple formats
+  DateTime? _tryParseDate(String dateString) {
+    if (dateString.isEmpty) {
+      return null;
+    }
+
+    try {
+      // Try standard ISO format
+      return DateTime.parse(dateString);
+    } catch (_) {
+      try {
+        // Try Unix timestamp (milliseconds)
+        return DateTime.fromMillisecondsSinceEpoch(int.parse(dateString));
+      } catch (_) {
+        try {
+          // Try Unix timestamp (seconds)
+          return DateTime.fromMillisecondsSinceEpoch(
+            int.parse(dateString) * 1000,
+          );
+        } catch (_) {
+          // Could not parse the date
+          return null;
+        }
+      }
+    }
+  }
+
   // Format date to be more readable
   String _formatDate(String dateString) {
-    try {
-      final date = DateTime.parse(dateString);
-      final now = DateTime.now();
-      final difference = now.difference(date);
+    final date = _tryParseDate(dateString);
+    if (date == null) {
+      return 'Unknown date';
+    }
 
-      if (difference.inDays > 7) {
-        // Format as date if older than a week
-        return '${date.day}/${date.month}/${date.year}';
-      } else if (difference.inDays > 0) {
-        // Days ago
-        return '${difference.inDays} days ago';
-      } else if (difference.inHours > 0) {
-        // Hours ago
-        return '${difference.inHours} hours ago';
-      } else if (difference.inMinutes > 0) {
-        // Minutes ago
-        return '${difference.inMinutes} minutes ago';
-      } else {
-        // Just now
-        return 'Just now';
-      }
-    } catch (e) {
-      // Fallback if date can't be parsed
-      return dateString;
+    final now = DateTime.now();
+    final difference = now.difference(date);
+
+    if (difference.inDays > 7) {
+      // Format as date if older than a week
+      return '${date.day}/${date.month}/${date.year}';
+    } else if (difference.inDays > 0) {
+      // Days ago
+      return '${difference.inDays} days ago';
+    } else if (difference.inHours > 0) {
+      // Hours ago
+      return '${difference.inHours} hours ago';
+    } else if (difference.inMinutes > 0) {
+      // Minutes ago
+      return '${difference.inMinutes} minutes ago';
+    } else {
+      // Just now
+      return 'Just now';
     }
   }
 

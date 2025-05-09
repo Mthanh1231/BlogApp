@@ -64,7 +64,18 @@ class UserController {
       res.status(400).json({ success: false, message: err.message });
     }
   }
+  // GET /users/me
+  async getCurrentUserProfile(req, res) {
+    try {
+      // Get current user ID from the authenticated request
+      const userId = req.user._id;
+      const { user, postCount } = await this.userUseCases.getUserProfile(userId);
+      res.status(200).json({ success: true, user, postCount });
+    } catch (err) {
+      res.status(404).json({ success: false, message: err.message });
+    }
   }
+}
   
   module.exports = UserController;
   

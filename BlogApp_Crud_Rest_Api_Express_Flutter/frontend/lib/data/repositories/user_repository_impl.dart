@@ -39,10 +39,10 @@ class UserRepositoryImpl implements UserRepository {
 
   @override
   Future<User> getProfile(String id) async {
+    // Determine the endpoint to use
     final String endpoint =
         id.isEmpty
-            ? ApiConfig.userProfile +
-                '/me' // Use /users/me endpoint for current user
+            ? '${ApiConfig.userProfile}/me' // Use /users/me endpoint for current user
             : '${ApiConfig.userProfile}/$id';
 
     final res = await api.get(endpoint, token: token);
@@ -76,7 +76,11 @@ class UserRepositoryImpl implements UserRepository {
 
       return UserModel.fromJson(userData);
     } else {
-      throw Exception('Failed to fetch profile: ${res.statusCode}');
+      final errorMsg =
+          res.statusCode == 404
+              ? 'User profile not found'
+              : 'Failed to fetch profile: ${res.statusCode}';
+      throw Exception(errorMsg);
     }
   }
 }

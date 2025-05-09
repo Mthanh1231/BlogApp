@@ -123,29 +123,19 @@ class _EditPostScreenState extends State<EditPostScreen> {
 
       // Add image if selected
       if (_image != null) {
-        updatedData['image'] = _image!.path;
+        updatedData['imageFile'] = _image;
       }
 
       // Update post
-      final success = await updatePost.execute(_postId!, updatedData);
+      await updatePost.execute(_postId!, updatedData);
 
-      if (success == true) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Post updated successfully')));
+      // Show success message
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Post updated successfully')));
 
-        // Return to posts list with refresh signal
-        // Pop to detail screen first with true (edited)
-        Navigator.pop(context, true);
-
-        // Then pop detail screen with true (refresh needed) - this will return to list page
-        Navigator.pop(context, true);
-      } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to update post')));
-        setState(() => _isSaving = false);
-      }
+      // Return to posts list with refresh signal
+      Navigator.pop(context, true);
     } catch (e) {
       print('Error updating post: $e');
       ScaffoldMessenger.of(

@@ -100,11 +100,6 @@ app.get(
 );
 
 // Protected User routes
-app.get(
-  '/users/me',
-  passport.authenticate('jwt', { session: false }),
-  (req, res) => userCtrl.getCurrentUserProfile(req, res)
-);
 app.put(
   '/user',
   passport.authenticate('jwt', { session: false }),

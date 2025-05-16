@@ -67,11 +67,14 @@ class UserController {
   // GET /users/me
   async getCurrentUserProfile(req, res) {
     try {
+      console.log('DEBUG /users/me req.user:', req.user);
       // Get current user ID from the authenticated request
       const userId = req.user._id;
+      console.log('DEBUG /users/me userId:', userId);
       const { user, postCount } = await this.userUseCases.getUserProfile(userId);
       res.status(200).json({ success: true, user, postCount });
     } catch (err) {
+      console.error('ERROR /users/me:', err);
       res.status(404).json({ success: false, message: err.message });
     }
   }

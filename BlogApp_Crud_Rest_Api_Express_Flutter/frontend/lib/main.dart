@@ -8,6 +8,7 @@ import 'presentation/screens/create_post_screen.dart';
 import 'presentation/screens/post_detail_screen.dart';
 import 'presentation/screens/edit_post_screen.dart';
 import 'presentation/screens/profile_screen.dart';
+import 'presentation/screens/user_profile_screen.dart';
 
 void main() => runApp(BlogApp());
 
@@ -28,7 +29,28 @@ class BlogApp extends StatelessWidget {
         '/create': (_) => CreatePostScreen(),
         '/profile': (_) => ProfileScreen(),
         '/edit': (_) => EditPostScreen(),
-        // We'll handle detail screen in onGenerateRoute
+        '/search': (context) {
+          Future.delayed(Duration.zero, () {
+            showDialog(
+              context: context,
+              builder:
+                  (ctx) => AlertDialog(
+                    title: Text('Thông báo'),
+                    content: Text('Chức năng mới, xin hãy kiên nhẫn'),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(ctx).pop();
+                          Navigator.of(context).pop();
+                        },
+                        child: Text('OK'),
+                      ),
+                    ],
+                  ),
+            );
+          });
+          return Scaffold();
+        },
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/detail') {
@@ -79,6 +101,40 @@ class BlogApp extends StatelessWidget {
           return MaterialPageRoute(
             builder: (context) => EditPostScreen(),
             settings: RouteSettings(name: '/edit', arguments: args),
+          );
+        }
+
+        // Handle User Profile route
+        if (settings.name == '/user-profile') {
+          final args = settings.arguments as Map<String, dynamic>?;
+          if (args == null || args['userId'] == null || args['token'] == null) {
+            return MaterialPageRoute(
+              builder:
+                  (context) => Scaffold(
+                    appBar: AppBar(title: Text('Error')),
+                    body: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('Invalid user ID or missing authentication.'),
+                          SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: Text('Go Back'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+            );
+          }
+
+          return MaterialPageRoute(
+            builder:
+                (context) => UserProfileScreen(
+                  userId: args['userId'],
+                  token: args['token'],
+                ),
           );
         }
 

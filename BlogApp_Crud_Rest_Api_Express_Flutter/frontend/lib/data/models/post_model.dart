@@ -4,14 +4,26 @@ import '../../domain/entities/post.dart';
 
 class PostModel extends Post {
   PostModel({
-    required super.id,
-    required super.userId,
-    super.text,
-    super.image,
-    super.address,
-    required super.createdAt,
-    required super.updatedAt,
-  });
+    required String id,
+    required String userId,
+    String? text,
+    String? image,
+    String? address,
+    required String createdAt,
+    required String updatedAt,
+    required String authorId,
+    required String authorName,
+  }) : super(
+         id: id,
+         userId: userId,
+         text: text,
+         image: image,
+         address: address,
+         createdAt: createdAt,
+         updatedAt: updatedAt,
+         authorId: authorId,
+         authorName: authorName,
+       );
 
   factory PostModel.fromJson(Map<String, dynamic> json) {
     // Handle potential different formats of image path
@@ -47,21 +59,35 @@ class PostModel extends Post {
       updatedAt = createdAt;
     }
 
+    // Xử lý trường hợp author là object hoặc string
+    String userId = '';
+    String authorId = '';
+    String authorName = 'Unknown';
+    if (json['author'] is Map) {
+      userId = json['author']['_id']?.toString() ?? '';
+      authorId = json['author']['_id']?.toString() ?? '';
+      authorName = json['author']['name'] ?? 'Unknown';
+    } else if (json['author'] is String) {
+      authorName = json['author'];
+    }
+
     return PostModel(
-      id: json['_id'] ?? json['id'] ?? '',
-      userId: json['authorId'] ?? '',
+      id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
+      userId: userId,
       text: json['text'],
       image: imagePath,
       address: json['address'],
       createdAt: createdAt,
       updatedAt: updatedAt,
+      authorId: authorId,
+      authorName: authorName,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       '_id': id,
-      'authorId': userId,
+      'authorId': authorId,
       'text': text,
       'image': image,
       'address': address,

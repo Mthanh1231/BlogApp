@@ -1,59 +1,41 @@
-// File: lib/presentation/screens/profile_screen.dart
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/datasources/api_service.dart';
 import '../../data/repositories/user_repository_impl.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/usecases/get_user_profile.dart';
 import '../widgets/loading_indicator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+class UserProfileScreen extends StatefulWidget {
+  final String userId;
+  final String token;
+
+  const UserProfileScreen({Key? key, required this.userId, required this.token})
+    : super(key: key);
 
   @override
-  _ProfileScreenState createState() => _ProfileScreenState();
+  _UserProfileScreenState createState() => _UserProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _UserProfileScreenState extends State<UserProfileScreen> {
   Future<User>? _profileFuture;
-  String? token;
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    // Initialize loading
     _loadUserProfile();
   }
 
   Future<void> _loadUserProfile() async {
     try {
-      // Get token from SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      token = prefs.getString('token');
-
-      if (token == null) {
-        // Handle missing token
-        setState(() {
-          _isLoading = false;
-          _profileFuture = Future.error('No authentication token found');
-        });
-        Navigator.pushReplacementNamed(context, '/login');
-        return;
-      }
-
-      // Initialize API and repository
       final api = ApiService(http.Client());
-      final repo = UserRepositoryImpl(api, token: token);
+      final repo = UserRepositoryImpl(api, token: widget.token);
       final useCase = GetUserProfileUseCase(repo);
 
-      // First complete the async work
-      final futureToUse = useCase.execute('');
-
-      // Then update state synchronously
       setState(() {
-        _profileFuture = futureToUse;
+        _profileFuture = useCase.execute(widget.userId);
         _isLoading = false;
       });
     } catch (e) {
@@ -112,7 +94,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Icon(Icons.error_outline, size: 64, color: Colors.red),
                       SizedBox(height: 16),
                       Text(
-                        'Error: ${snapshot.error}',
+                        'Error: [38;5;9m${snapshot.error}[0m',
                         style: TextStyle(fontSize: 16),
                       ),
                       SizedBox(height: 24),

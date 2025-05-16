@@ -35,15 +35,12 @@ class PostItem extends StatelessWidget {
           final result = await Navigator.pushNamed(
             context,
             '/detail',
-            arguments: {
-              'postId': post.id,
-              'token': token, // Make sure token is passed here
-            },
+            arguments: {'postId': post.id, 'token': token},
           );
 
           // If result is true, post was edited or deleted, refresh the list
           if (result == true) {
-            onPostDeleted(); // Call the callback to refresh the post list
+            onPostDeleted();
           }
         },
         child: Column(
@@ -68,6 +65,39 @@ class PostItem extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Add user info section with tap to view profile
+                  InkWell(
+                    onTap: () {
+                      Navigator.pushNamed(
+                        context,
+                        '/user-profile',
+                        arguments: {'userId': post.authorId, 'token': token},
+                      );
+                    },
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 16,
+                          backgroundColor: Theme.of(context).primaryColor,
+                          child: Text(
+                            post.authorName.isNotEmpty
+                                ? post.authorName[0].toUpperCase()
+                                : '?',
+                            style: TextStyle(fontSize: 14, color: Colors.white),
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          post.authorName,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 8),
                   if (post.text != null && post.text!.isNotEmpty)
                     Text(
                       post.text!,

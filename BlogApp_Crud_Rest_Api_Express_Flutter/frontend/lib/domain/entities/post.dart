@@ -7,6 +7,8 @@ class Post {
   final String? address;
   final String createdAt;
   final String updatedAt;
+  final String authorId;
+  final String authorName;
 
   Post({
     required this.id,
@@ -16,5 +18,7 @@ class Post {
     this.address,
     required this.createdAt,
     required this.updatedAt,
+    required this.authorId,
+    required this.authorName,
   });
 }

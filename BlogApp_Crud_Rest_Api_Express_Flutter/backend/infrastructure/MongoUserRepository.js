@@ -2,6 +2,8 @@
 
 const UserRepository = require('../interfaces/repositories/UserRepository');
 const UserModel      = require('../models/UserModel');
+const mongoose = require('mongoose');
+const ObjectId = mongoose.Types.ObjectId;
 
 class MongoUserRepository extends UserRepository {
   async createUser(userData) {
@@ -14,6 +16,14 @@ class MongoUserRepository extends UserRepository {
   }
 
   async findById(id) {
+    // Convert id sang ObjectId nếu là string 24 ký tự
+    if (typeof id === 'string' && id.length === 24) {
+      try {
+        id = new ObjectId(id);
+      } catch (e) {
+        // Nếu không convert được thì thôi, dùng string
+      }
+    }
     return await UserModel.findById(id);
   }
 

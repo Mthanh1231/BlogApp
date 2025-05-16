@@ -45,6 +45,10 @@ class UserRepositoryImpl implements UserRepository {
             ? '${ApiConfig.userProfile}/me' // Use /users/me endpoint for current user
             : '${ApiConfig.userProfile}/$id';
 
+    // Log token và endpoint để debug
+    print('[DEBUG] Call getProfile endpoint: ' + endpoint);
+    print('[DEBUG] Token: ' + (token ?? 'NULL'));
+
     final res = await api.get(endpoint, token: token);
 
     if (res.statusCode == 200) {

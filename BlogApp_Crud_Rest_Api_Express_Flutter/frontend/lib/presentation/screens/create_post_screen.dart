@@ -7,6 +7,10 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../config/api_config.dart';
+import '../../data/datasources/api_service.dart';
+import '../../data/repositories/user_repository_impl.dart';
+import '../../domain/usecases/get_user_profile.dart';
+import '../../domain/entities/user.dart';
 
 class CreatePostScreen extends StatefulWidget {
   const CreatePostScreen({super.key});
@@ -20,6 +24,37 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   final _captionCtrl = TextEditingController();
   final _locationCtrl = TextEditingController();
   bool _sharing = false;
+  User? _currentUser;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUser();
+  }
+
+  Future<void> _loadCurrentUser() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      if (token != null && token.isNotEmpty) {
+        final api = ApiService(http.Client());
+        final repo = UserRepositoryImpl(api, token: token);
+        final useCase = GetUserProfileUseCase(repo);
+        final user = await useCase.execute('');
+        setState(() {
+          _currentUser = user;
+        });
+      } else {
+        // Không có token, chuyển về login
+        Navigator.pushReplacementNamed(context, '/login');
+      }
+    } catch (e) {
+      // Nếu lỗi 401 hoặc 404, xóa token và chuyển về login
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('token');
+      Navigator.pushReplacementNamed(context, '/login');
+    }
+  }
 
   @override
   void dispose() {
@@ -187,13 +222,19 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Username placeholder
+                    // Username thực tế
                     Row(
-                      children: const [
-                        CircleAvatar(child: Icon(Icons.person)),
+                      children: [
+                        CircleAvatar(
+                          child: Text(
+                            _currentUser?.name.isNotEmpty == true
+                                ? _currentUser!.name[0].toUpperCase()
+                                : '?',
+                          ),
+                        ),
                         SizedBox(width: 12),
                         Text(
-                          'your_username',
+                          _currentUser?.name ?? 'Loading...',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ],

@@ -106,6 +106,11 @@ app.put(
   (req, res) => userCtrl.updateUser(req, res)
 );
 app.get(
+  '/users/me',
+  passport.authenticate('jwt', { session: false }),
+  (req, res) => userCtrl.getCurrentUserProfile(req, res)
+);
+app.get(
   '/users',
   passport.authenticate('jwt', { session: false }),
   (req, res) => userCtrl.listUsers(req, res)

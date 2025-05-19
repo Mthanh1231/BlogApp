@@ -1,5 +1,6 @@
 // File: lib/main.dart
 import 'package:flutter/material.dart';
+import 'config/app_config.dart';
 import 'presentation/screens/splash_screen.dart';
 import 'presentation/screens/login_screen.dart';
 import 'presentation/screens/register_screen.dart';
@@ -10,7 +11,11 @@ import 'presentation/screens/edit_post_screen.dart';
 import 'presentation/screens/profile_screen.dart';
 import 'presentation/screens/user_profile_screen.dart';
 
-void main() => runApp(BlogApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await AppConfig.load();
+  runApp(BlogApp());
+}
 
 class BlogApp extends StatelessWidget {
   const BlogApp({super.key});

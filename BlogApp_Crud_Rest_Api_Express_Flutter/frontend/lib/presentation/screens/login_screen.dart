@@ -66,14 +66,11 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _loginWithGoogle() async {
     final url = Uri.parse(ApiConfig.baseUrl + ApiConfig.googleAuth);
     if (await canLaunchUrl(url)) {
-      await launchUrl(
-        url,
-        mode: LaunchMode.externalApplication,
-      );
+      await launchUrl(url, mode: LaunchMode.externalApplication);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Không thể mở trình duyệt')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Không thể mở trình duyệt')));
     }
   }
 
@@ -106,10 +103,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     // Error message
                     if (_errorMessage != null) ...[
-                      Text(
-                        _errorMessage!,
-                        style: TextStyle(color: Colors.red),
-                      ),
+                      Text(_errorMessage!, style: TextStyle(color: Colors.red)),
                       SizedBox(height: 12),
                     ],
 
@@ -117,9 +111,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextFormField(
                       controller: _userCtrl,
                       decoration: InputDecoration(labelText: 'Username'),
-                      validator: (v) =>
-                          v == null || v.isEmpty ? 'Vui lòng nhập tên' : null,
-                      textInputAction: TextInputAction.next, // Enter sẽ chuyển focus
+                      validator:
+                          (v) =>
+                              v == null || v.isEmpty
+                                  ? 'Vui lòng nhập tên'
+                                  : null,
+                      textInputAction:
+                          TextInputAction.next, // Enter sẽ chuyển focus
                     ),
                     SizedBox(height: 16),
 
@@ -128,11 +126,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       controller: _passCtrl,
                       decoration: InputDecoration(labelText: 'Password'),
                       obscureText: true,
-                      validator: (v) => v == null || v.length < 6
-                          ? 'Mật khẩu tối thiểu 6 ký tự'
-                          : null,
-                      textInputAction: TextInputAction.done,      // Enter = done
-                      onFieldSubmitted: (_) => _submit(),         // Nhấn Enter submit
+                      validator:
+                          (v) =>
+                              v == null || v.length < 6
+                                  ? 'Mật khẩu tối thiểu 6 ký tự'
+                                  : null,
+                      textInputAction: TextInputAction.done, // Enter = done
+                      onFieldSubmitted: (_) => _submit(), // Nhấn Enter submit
                     ),
                     SizedBox(height: 24),
 
@@ -141,16 +141,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: _loading ? null : _submit,
-                        child: _loading
-                            ? SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : Text('Login'),
+                        child:
+                            _loading
+                                ? SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                                : Text('Login'),
                       ),
                     ),
 
@@ -158,8 +159,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
-                        onPressed: () =>
-                            Navigator.pushReplacementNamed(context, '/register'),
+                        onPressed:
+                            () => Navigator.pushReplacementNamed(
+                              context,
+                              '/register',
+                            ),
                         child: Text('Register'),
                       ),
                     ),
@@ -169,10 +173,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
-                        icon: Image.asset(
-                          'assets/google_logo.png',
-                          height: 24,
-                        ),
+                        icon: Image.asset('assets/google_logo.png', height: 24),
                         label: Text('Login with Google'),
                         onPressed: _loginWithGoogle,
                         style: OutlinedButton.styleFrom(

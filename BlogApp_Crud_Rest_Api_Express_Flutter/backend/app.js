@@ -126,8 +126,31 @@ app.delete(
   (req, res) => userCtrl.deleteUser(req, res)
 );
 
+// Google OAuth routes
+app.get('/auth/google',
+  passport.authenticate('google', { scope: ['profile', 'email'] })
+);
+
+app.get('/auth/google/callback',
+  passport.authenticate('google', { session: false, failureRedirect: '/login' }),
+  (req, res) => {
+    // Tạo JWT token cho user đã xác thực thành công
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign(
+      { id: req.user._id, name: req.user.name },
+      config.SECRET,
+      { expiresIn: '1h' }
+    );
+    // Redirect về frontend Flutter (hoặc trả về token tuỳ ý)
+    res.json({ token });
+    // Nếu muốn trả về JSON:
+    // res.json({ token });
+  }
+);
+
 // 11. Start server
 const PORT = config.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server is running on http://localhost:${PORT}`);
+const HOST = '0.0.0.0';
+app.listen(PORT, HOST, () => {
+  console.log(`🚀 Server is running on http://${HOST}:${PORT}`);
 });

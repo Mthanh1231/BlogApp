@@ -29,6 +29,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
   bool _isLoading = true;
   bool _isSaving = false;
   String? _imageUrl;
+  String? _debugLog;
 
   @override
   void initState() {
@@ -69,6 +70,25 @@ class _EditPostScreenState extends State<EditPostScreen> {
         }
       }
 
+      // Log giá trị token và postId sau khi load
+      _debugLog =
+          'DEBUG: Sau khi load, _token=[32m[1m${_token}[0m, _postId=${_postId}';
+      print(_debugLog);
+
+      // Nếu vẫn thiếu token hoặc postId, báo lỗi và return
+      if (_token == null ||
+          _token!.isEmpty ||
+          _postId == null ||
+          _postId!.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Không thể chỉnh sửa: thiếu token hoặc postId!'),
+          ),
+        );
+        setState(() => _isLoading = false);
+        return;
+      }
+
       // Fetch post data
       final api = ApiService(http.Client());
       final repo = PostRepositoryImpl(api, _token!);
@@ -105,39 +125,88 @@ class _EditPostScreenState extends State<EditPostScreen> {
   }
 
   Future<void> _updatePost() async {
-    // Validate form
+    if (_isLoading || _post == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Vui lòng đợi dữ liệu tải xong!')));
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
-
+    if (_token == null || _token!.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Thiếu token!')));
+      return;
+    }
+    if (_postId == null || _postId!.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Thiếu postId!')));
+      return;
+    }
+    if (_post!.id.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Post không hợp lệ!')));
+      return;
+    }
+    if (_textController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Caption không được để trống!')));
+      return;
+    }
     try {
       setState(() => _isSaving = true);
-
       final api = ApiService(http.Client());
       final repo = PostRepositoryImpl(api, _token!);
       final updatePost = UpdatePost(repo);
-
-      // Prepare update data
-      Map<String, dynamic> updatedData = {
-        'text': _textController.text.trim(),
-        'address': _addressController.text.trim(),
-      };
-
-      // Add image if selected
-      if (_image != null) {
-        updatedData['imageFile'] = _image;
+      Map<String, dynamic> updatedData = {};
+      if (_textController.text.trim() != (_post?.text ?? '')) {
+        updatedData['text'] = _textController.text.trim();
       }
-
-      // Update post
+      if (_addressController.text.trim() != (_post?.address ?? '')) {
+        updatedData['address'] = _addressController.text.trim();
+      }
+      if (updatedData.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Không có thay đổi nào để cập nhật!')),
+        );
+        setState(() => _isSaving = false);
+        return;
+      }
+      // Log chi tiết trước khi update
+      print(
+        'DEBUG: _postId=$_postId, _token=$_token, updatedData=$updatedData, _post.id=${_post?.id}',
+      );
+      if (_postId == null || _postId!.isEmpty) {
+        print('ERROR: _postId is null or empty');
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Thiếu postId!')));
+        setState(() => _isSaving = false);
+        return;
+      }
+      if (_post == null || _post!.id.isEmpty) {
+        print('ERROR: _post is null or id is empty');
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Post không hợp lệ!')));
+        setState(() => _isSaving = false);
+        return;
+      }
+      // Log dữ liệu gửi lên backend
+      print(
+        'DEBUG UPDATE: _postId=$_postId, updatedData=$updatedData, token=$_token',
+      );
       await updatePost.execute(_postId!, updatedData);
-
-      // Show success message
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Post updated successfully')));
-
-      // Return to posts list with refresh signal
       Navigator.pop(context, true);
-    } catch (e) {
+    } catch (e, stack) {
       print('Error updating post: $e');
+      print('STACK: $stack');
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error updating post: $e')));
@@ -146,163 +215,83 @@ class _EditPostScreenState extends State<EditPostScreen> {
   }
 
   Widget _buildImagePreview() {
-    if (_image != null) {
-      // Show selected local image
-      return Stack(
-        children: [
-          Container(
-            height: 200,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              image: DecorationImage(
-                image: FileImage(_image!),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          Positioned(
-            right: 8,
-            top: 8,
-            child: IconButton(
-              icon: const Icon(Icons.close, color: Colors.white),
-              onPressed: () => setState(() => _image = null),
-              style: IconButton.styleFrom(backgroundColor: Colors.black54),
-            ),
-          ),
-        ],
-      );
-    } else if (_imageUrl != null && _imageUrl!.isNotEmpty) {
-      // Show existing image from URL
-      final fullImageUrl =
-          _imageUrl!.startsWith('http')
-              ? _imageUrl!
-              : '${ApiConfig.baseUrl}$_imageUrl';
-
-      return Stack(
-        children: [
-          SizedBox(
-            height: 200,
-            width: double.infinity,
-            child: Image.network(
-              fullImageUrl,
-              fit: BoxFit.cover,
-              errorBuilder:
-                  (_, __, ___) => Container(
-                    color: Colors.grey[300],
-                    alignment: Alignment.center,
-                    child: const Text('Image not available'),
-                  ),
-            ),
-          ),
-          Positioned(
-            right: 8,
-            top: 8,
-            child: IconButton(
-              icon: const Icon(Icons.close, color: Colors.white),
-              onPressed: () => setState(() => _imageUrl = null),
-              style: IconButton.styleFrom(backgroundColor: Colors.black54),
-            ),
-          ),
-        ],
-      );
-    } else {
-      // No image
-      return Container(
-        height: 200,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: Colors.grey[200],
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: const Center(
-          child: Icon(Icons.image, size: 80, color: Colors.grey),
-        ),
-      );
-    }
+    // Bỏ hoàn toàn phần upload/chọn ảnh trong update post
+    return Container();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Edit Post'),
-        actions: [
-          if (!_isLoading && !_isSaving)
-            IconButton(icon: const Icon(Icons.save), onPressed: _updatePost),
-        ],
+        title: const Text('Edit post'),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: const BackButton(color: Colors.black),
+        iconTheme: IconThemeData(color: Colors.black),
+        titleTextStyle: TextStyle(
+          color: Colors.black,
+          fontWeight: FontWeight.bold,
+          fontSize: 20,
+        ),
       ),
-      body:
-          _isLoading
-              ? const Center(child: LoadingIndicator())
-              : SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Image Preview
-                      _buildImagePreview(),
-                      const SizedBox(height: 16),
-
-                      // Image Picker Button
-                      ElevatedButton.icon(
-                        onPressed: _isSaving ? null : _pickImage,
-                        icon: const Icon(Icons.photo),
-                        label: const Text('Change Image'),
+      body: Center(
+        child: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 400),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextFormField(
+                      controller: _textController,
+                      decoration: InputDecoration(labelText: 'Caption'),
+                      maxLines: 3,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Caption không được để trống!';
+                        }
+                        return null;
+                      },
+                    ),
+                    SizedBox(height: 24),
+                    TextFormField(
+                      controller: _addressController,
+                      decoration: InputDecoration(labelText: 'Location'),
+                    ),
+                    SizedBox(height: 32),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed:
+                            (_isSaving || _isLoading || _post == null)
+                                ? null
+                                : _updatePost,
+                        child:
+                            _isSaving
+                                ? SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                                : Text('Save'),
                       ),
-                      const SizedBox(height: 24),
-
-                      // Post Text Field
-                      TextFormField(
-                        controller: _textController,
-                        decoration: const InputDecoration(
-                          labelText: 'Post Text',
-                          border: OutlineInputBorder(),
-                        ),
-                        maxLines: 5,
-                        enabled: !_isSaving,
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Address Field
-                      TextFormField(
-                        controller: _addressController,
-                        decoration: const InputDecoration(
-                          labelText: 'Location',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.location_on),
-                        ),
-                        enabled: !_isSaving,
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Update Button
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _isSaving ? null : _updatePost,
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                          child:
-                              _isSaving
-                                  ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                  : const Text('UPDATE POST'),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

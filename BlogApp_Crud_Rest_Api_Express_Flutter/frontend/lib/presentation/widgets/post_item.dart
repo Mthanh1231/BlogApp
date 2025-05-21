@@ -27,8 +27,10 @@ class PostItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: 2,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: Colors.white,
       child: InkWell(
         onTap: () async {
           // Navigate to detail screen with proper arguments
@@ -47,25 +49,30 @@ class PostItem extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (post.image != null && post.image!.isNotEmpty)
-              Image.network(
-                _getImageUrl(post.image),
-                height: 200,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder:
-                    (_, error, __) => Container(
-                      height: 100,
-                      color: Colors.grey[300],
-                      alignment: Alignment.center,
-                      child: Icon(Icons.image_not_supported),
-                    ),
+              ClipRRect(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                child: Image.network(
+                  _getImageUrl(post.image),
+                  height: 200,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder:
+                      (_, error, __) => Container(
+                        height: 100,
+                        color: Colors.grey[200],
+                        alignment: Alignment.center,
+                        child: Icon(
+                          Icons.image_not_supported,
+                          color: Colors.grey,
+                        ),
+                      ),
+                ),
               ),
             Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Add user info section with tap to view profile
                   InkWell(
                     onTap: () {
                       Navigator.pushNamed(
@@ -77,27 +84,27 @@ class PostItem extends StatelessWidget {
                     child: Row(
                       children: [
                         CircleAvatar(
-                          radius: 16,
-                          backgroundColor: Theme.of(context).primaryColor,
+                          radius: 18,
+                          backgroundColor: Colors.grey[200],
                           child: Text(
                             post.authorName.isNotEmpty
                                 ? post.authorName[0].toUpperCase()
                                 : '?',
-                            style: TextStyle(fontSize: 14, color: Colors.white),
+                            style: TextStyle(fontSize: 16, color: Colors.black),
                           ),
                         ),
-                        SizedBox(width: 8),
+                        SizedBox(width: 12),
                         Text(
                           post.authorName,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                            fontSize: 17,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  SizedBox(height: 8),
+                  SizedBox(height: 12),
                   if (post.text != null && post.text!.isNotEmpty)
                     Text(
                       post.text!,
@@ -105,13 +112,13 @@ class PostItem extends StatelessWidget {
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                     ),
-                  SizedBox(height: 8),
+                  SizedBox(height: 10),
                   if (post.address != null && post.address!.isNotEmpty)
                     Text(
                       post.address!,
                       style: TextStyle(color: Colors.grey[700], fontSize: 14),
                     ),
-                  SizedBox(height: 4),
+                  SizedBox(height: 6),
                   Text(
                     post.createdAt,
                     style: TextStyle(color: Colors.grey, fontSize: 12),

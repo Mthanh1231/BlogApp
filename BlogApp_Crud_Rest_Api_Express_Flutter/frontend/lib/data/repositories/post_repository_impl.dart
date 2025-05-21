@@ -102,8 +102,15 @@ class PostRepositoryImpl implements PostRepository {
     } else {
       // Regular JSON put request without file
       final res = await api.put('${ApiConfig.posts}/$id', data, token: token);
+      final body = jsonDecode(res.body);
+      print('DEBUG: Response body: $body');
       if (res.statusCode == 200) {
-        return PostModel.fromJson(jsonDecode(res.body)['post']);
+        // Nếu backend trả về object post trực tiếp hoặc bọc trong {post: ...}
+        if (body is Map && body.containsKey('post')) {
+          return PostModel.fromJson(body['post']);
+        } else {
+          return PostModel.fromJson(body);
+        }
       } else {
         throw Exception('Failed to update post: ${res.statusCode}');
       }

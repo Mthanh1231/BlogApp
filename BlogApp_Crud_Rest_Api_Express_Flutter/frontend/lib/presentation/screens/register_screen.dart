@@ -19,10 +19,10 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailCtrl    = TextEditingController();
-  final _passCtrl     = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _passCtrl = TextEditingController();
   final _fullNameCtrl = TextEditingController();
-  final _userCtrl     = TextEditingController();
+  final _userCtrl = TextEditingController();
 
   bool _loading = false;
   String? _errorMessage;
@@ -73,172 +73,106 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Không thể mở trình duyệt'))
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Không thể mở trình duyệt')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // nền trắng tinh, form nằm giữa
+      backgroundColor: Colors.white,
       body: Center(
         child: SingleChildScrollView(
           padding: EdgeInsets.symmetric(horizontal: 24),
           child: Card(
-            elevation: 8,
+            elevation: 1,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
             ),
+            color: Colors.white,
             child: Padding(
-              padding: EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // App logo / tên
-                  Text(
-                    'BlogApp',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 16),
-
-                  // Sign up with Google
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      icon: Image.asset(
-                        'assets/google_logo.png',
-                        height: 24,
-                      ),
-                      label: Text('Sign up with Google'),
-                      onPressed: _signupWithGoogle,
-                      style: OutlinedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                        textStyle: TextStyle(fontSize: 16),
-                      ),
-                    ),
-                  ),
-
-                  SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(child: Divider()),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8),
-                        child: Text('OR'),
-                      ),
-                      Expanded(child: Divider()),
-                    ],
-                  ),
-                  SizedBox(height: 16),
-
-                  // Error message
-                  if (_errorMessage != null) ...[
+              padding: EdgeInsets.all(32),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                     Text(
-                      _errorMessage!,
-                      style: TextStyle(color: Colors.red),
+                      'Register',
+                      style: Theme.of(context).textTheme.headlineLarge,
                     ),
-                    SizedBox(height: 12),
-                  ],
-
-                  // Form fields
-                  Form(
-                    key: _formKey,
-                    child: Column(
-                      children: [
-                        // Email / Mobile
-                        TextFormField(
-                          controller: _emailCtrl,
-                          decoration: InputDecoration(
-                            hintText: 'Mobile Number or Email',
-                            border: OutlineInputBorder(),
-                          ),
-                          validator: (v) => v == null || v.isEmpty
-                              ? 'Required'
-                              : null,
-                        ),
-                        SizedBox(height: 12),
-
-                        // Password
-                        TextFormField(
-                          controller: _passCtrl,
-                          decoration: InputDecoration(
-                            hintText: 'Password',
-                            border: OutlineInputBorder(),
-                          ),
-                          obscureText: true,
-                          validator: (v) => v == null || v.length < 6
-                              ? 'Min 6 characters'
-                              : null,
-                        ),
-                        SizedBox(height: 12),
-
-                        // Full Name
-                        TextFormField(
-                          controller: _fullNameCtrl,
-                          decoration: InputDecoration(
-                            hintText: 'Full Name',
-                            border: OutlineInputBorder(),
-                          ),
-                          validator: (v) => v == null || v.isEmpty
-                              ? 'Required'
-                              : null,
-                        ),
-                        SizedBox(height: 12),
-
-                        // Username
-                        TextFormField(
-                          controller: _userCtrl,
-                          decoration: InputDecoration(
-                            hintText: 'Username',
-                            border: OutlineInputBorder(),
-                          ),
-                          validator: (v) => v == null || v.isEmpty
-                              ? 'Required'
-                              : null,
-                        ),
-                        SizedBox(height: 24),
-
-                        // Sign up button
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _loading ? null : _submit,
-                            child: _loading
+                    SizedBox(height: 32),
+                    if (_errorMessage != null) ...[
+                      Text(_errorMessage!, style: TextStyle(color: Colors.red)),
+                      SizedBox(height: 16),
+                    ],
+                    TextFormField(
+                      controller: _userCtrl,
+                      decoration: InputDecoration(labelText: 'Username'),
+                      validator:
+                          (v) =>
+                              v == null || v.isEmpty
+                                  ? 'Vui lòng nhập tên'
+                                  : null,
+                      textInputAction: TextInputAction.next,
+                    ),
+                    SizedBox(height: 20),
+                    TextFormField(
+                      controller: _emailCtrl,
+                      decoration: InputDecoration(labelText: 'Email'),
+                      validator:
+                          (v) =>
+                              v == null || v.isEmpty
+                                  ? 'Vui lòng nhập email'
+                                  : null,
+                      textInputAction: TextInputAction.next,
+                    ),
+                    SizedBox(height: 20),
+                    TextFormField(
+                      controller: _passCtrl,
+                      decoration: InputDecoration(labelText: 'Password'),
+                      obscureText: true,
+                      validator:
+                          (v) =>
+                              v == null || v.length < 6
+                                  ? 'Mật khẩu tối thiểu 6 ký tự'
+                                  : null,
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) => _submit(),
+                    ),
+                    SizedBox(height: 32),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _loading ? null : _submit,
+                        child:
+                            _loading
                                 ? SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : Text('Sign up'),
-                          ),
-                        ),
-
-                        // Log in link
-                        SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text('Have an account?'),
-                            TextButton(
-                              onPressed: () =>
-                                  Navigator.pushReplacementNamed(
-                                      context, '/login'),
-                              child: Text('Log in'),
-                            ),
-                          ],
-                        ),
-                      ],
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                                : Text('Register'),
+                      ),
                     ),
-                  ),
-                ],
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed:
+                            () => Navigator.pushReplacementNamed(
+                              context,
+                              '/login',
+                            ),
+                        child: Text('Login'),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

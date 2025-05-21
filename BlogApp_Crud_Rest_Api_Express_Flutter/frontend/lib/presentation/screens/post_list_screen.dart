@@ -89,6 +89,12 @@ class _PostListScreenState extends State<PostListScreen> {
     final repo = PostRepositoryImpl(api, token);
     setState(() {
       _postsFuture = GetAllPosts(repo).execute().then((posts) {
+        // Log thông tin tối thiểu của từng post
+        for (var post in posts) {
+          print(
+            'POST: id=[32m${post.id}[0m, text=${post.text}, author=${post.authorName}',
+          );
+        }
         // Sort by createdAt date (newest first) with robust date parsing
         posts.sort((a, b) {
           DateTime? dateA = _tryParseDate(a.createdAt);
@@ -178,13 +184,28 @@ class _PostListScreenState extends State<PostListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: Row(
         children: [
-          // Navigation rail
           NavigationRail(
             selectedIndex: _navIndex,
             onDestinationSelected: _onNavChanged,
-            labelType: NavigationRailLabelType.all,
+            labelType: NavigationRailLabelType.selected,
+            backgroundColor: Colors.white,
+            selectedIconTheme: IconThemeData(color: Colors.black, size: 28),
+            unselectedIconTheme: IconThemeData(
+              color: Colors.grey[700],
+              size: 24,
+            ),
+            selectedLabelTextStyle: TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+            unselectedLabelTextStyle: TextStyle(
+              color: Colors.grey[700],
+              fontSize: 13,
+            ),
             destinations: const [
               NavigationRailDestination(
                 icon: Icon(Icons.home),

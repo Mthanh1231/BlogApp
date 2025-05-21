@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
+import 'package:app_links/app_links.dart';
+import 'dart:async';
 
 import '../../config/api_config.dart';
 import '../../data/datasources/api_service.dart';
@@ -25,18 +27,34 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _errorMessage;
 
   late final LoginUserUseCase _loginUseCase;
+  AppLinks? _appLinks;
+  StreamSubscription<Uri>? _sub;
 
   @override
   void initState() {
     super.initState();
     final api = ApiService(http.Client());
     _loginUseCase = LoginUserUseCase(UserRepositoryImpl(api));
+    _appLinks = AppLinks();
+    _sub = _appLinks!.uriLinkStream.listen((Uri? uri) async {
+      if (uri != null && uri.scheme == 'myblogapp' && uri.host == 'login') {
+        final token = uri.queryParameters['token'];
+        if (token != null) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('token', token);
+          if (mounted) {
+            Navigator.pushReplacementNamed(context, '/posts', arguments: token);
+          }
+        }
+      }
+    });
   }
 
   @override
   void dispose() {
     _userCtrl.dispose();
     _passCtrl.dispose();
+    _sub?.cancel();
     super.dispose();
   }
 
@@ -77,16 +95,18 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: Center(
         child: SingleChildScrollView(
           padding: EdgeInsets.symmetric(horizontal: 24),
           child: Card(
-            elevation: 8,
+            elevation: 1,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
+            color: Colors.white,
             child: Padding(
-              padding: EdgeInsets.all(24),
+              padding: EdgeInsets.all(32),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -94,20 +114,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     Text(
                       'BlogApp',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: Theme.of(context).textTheme.headlineLarge,
                     ),
-                    SizedBox(height: 24),
-
-                    // Error message
+                    SizedBox(height: 32),
                     if (_errorMessage != null) ...[
                       Text(_errorMessage!, style: TextStyle(color: Colors.red)),
-                      SizedBox(height: 12),
+                      SizedBox(height: 16),
                     ],
-
-                    // Username
                     TextFormField(
                       controller: _userCtrl,
                       decoration: InputDecoration(labelText: 'Username'),
@@ -116,12 +129,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               v == null || v.isEmpty
                                   ? 'Vui lòng nhập tên'
                                   : null,
-                      textInputAction:
-                          TextInputAction.next, // Enter sẽ chuyển focus
+                      textInputAction: TextInputAction.next,
                     ),
-                    SizedBox(height: 16),
-
-                    // Password
+                    SizedBox(height: 20),
                     TextFormField(
                       controller: _passCtrl,
                       decoration: InputDecoration(labelText: 'Password'),
@@ -131,12 +141,10 @@ class _LoginScreenState extends State<LoginScreen> {
                               v == null || v.length < 6
                                   ? 'Mật khẩu tối thiểu 6 ký tự'
                                   : null,
-                      textInputAction: TextInputAction.done, // Enter = done
-                      onFieldSubmitted: (_) => _submit(), // Nhấn Enter submit
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) => _submit(),
                     ),
-                    SizedBox(height: 24),
-
-                    // Login button
+                    SizedBox(height: 32),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -154,8 +162,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                 : Text('Login'),
                       ),
                     ),
-
-                    // Register link
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
@@ -167,8 +173,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: Text('Register'),
                       ),
                     ),
-
-                    // Divider + Google login
                     Divider(height: 32, thickness: 1),
                     SizedBox(
                       width: double.infinity,
@@ -177,7 +181,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         label: Text('Login with Google'),
                         onPressed: _loginWithGoogle,
                         style: OutlinedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(vertical: 12),
+                          padding: EdgeInsets.symmetric(vertical: 14),
                           textStyle: TextStyle(fontSize: 16),
                         ),
                       ),

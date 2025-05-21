@@ -22,9 +22,113 @@ class BlogApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final Color kWhite = Colors.white;
+    final Color kBlack = Colors.black;
+    final Color kGrey = Colors.grey[200]!; // xám nhạt ~70%
+
     return MaterialApp(
       title: 'BlogApp',
-      theme: ThemeData(primarySwatch: Colors.blue),
+      theme: ThemeData(
+        scaffoldBackgroundColor: kWhite,
+        primaryColor: kBlack,
+        fontFamily: 'Roboto',
+        cardTheme: CardTheme(
+          color: kWhite,
+          elevation: 1,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: kGrey, width: 1),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: kBlack),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: kBlack, width: 2),
+          ),
+          fillColor: kGrey,
+          filled: true,
+          contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          labelStyle: TextStyle(color: Colors.black87),
+          hintStyle: TextStyle(color: Colors.grey),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: kBlack,
+            foregroundColor: kWhite,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            textStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            padding: EdgeInsets.symmetric(vertical: 16),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            side: BorderSide(color: kBlack, width: 1.5),
+            textStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            padding: EdgeInsets.symmetric(vertical: 16),
+            foregroundColor: kBlack,
+          ),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            foregroundColor: kBlack,
+            textStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+        ),
+        appBarTheme: AppBarTheme(
+          backgroundColor: kWhite,
+          elevation: 0,
+          iconTheme: IconThemeData(color: kBlack),
+          titleTextStyle: TextStyle(
+            color: kBlack,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            fontFamily: 'Roboto',
+          ),
+        ),
+        navigationRailTheme: NavigationRailThemeData(
+          backgroundColor: kWhite,
+          selectedIconTheme: IconThemeData(color: kBlack, size: 28),
+          unselectedIconTheme: IconThemeData(color: Colors.grey[700], size: 24),
+          selectedLabelTextStyle: TextStyle(
+            color: kBlack,
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+          ),
+          unselectedLabelTextStyle: TextStyle(
+            color: Colors.grey[700],
+            fontSize: 13,
+          ),
+        ),
+        dividerColor: kGrey,
+        textTheme: TextTheme(
+          headlineLarge: TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+            color: kBlack,
+          ),
+          headlineMedium: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: kBlack,
+          ),
+          titleLarge: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: kBlack,
+          ),
+          bodyLarge: TextStyle(fontSize: 16, color: kBlack),
+          bodyMedium: TextStyle(fontSize: 14, color: Colors.black87),
+        ),
+      ),
       initialRoute: '/',
       routes: {
         '/': (_) => SplashScreen(),

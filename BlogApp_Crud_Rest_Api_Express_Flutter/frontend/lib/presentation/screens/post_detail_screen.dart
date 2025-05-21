@@ -9,6 +9,7 @@ import '../../domain/usecases/get_post_detail.dart';
 import '../../domain/usecases/delete_post.dart';
 import '../widgets/loading_indicator.dart';
 import '../../config/api_config.dart';
+import '../screens/edit_history_screen.dart';
 
 class PostDetailScreen extends StatefulWidget {
   final String postId;
@@ -189,100 +190,201 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text('Detail'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.edit),
-            onPressed:
-                _isDeleting || _isLoading
-                    ? null
-                    : () async {
-                      final result = await Navigator.pushNamed(
-                        context,
-                        '/edit',
-                        arguments: {'id': widget.postId, 'token': _token},
-                      );
-
-                      // Check if we need to refresh the post list after editing
-                      if (result == true) {
-                        // Pop back to PostListScreen with refresh signal
-                        Navigator.pop(context, true);
-                      }
-                    },
-          ),
-          IconButton(
-            icon:
-                _isDeleting
-                    ? SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                    : Icon(Icons.delete),
-            onPressed: _isDeleting || _isLoading ? null : _deletePost,
-          ),
-        ],
+        title: const Text('Post Detail'),
+        backgroundColor: Colors.white,
+        centerTitle: true,
+        elevation: 0,
+        iconTheme: IconThemeData(color: Colors.black),
+        titleTextStyle: TextStyle(
+          color: Colors.black,
+          fontWeight: FontWeight.bold,
+          fontSize: 20,
+        ),
       ),
-      body:
-          _isLoading || _postFuture == null
-              ? Center(child: LoadingIndicator())
-              : FutureBuilder<Post>(
-                future: _postFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState != ConnectionState.done)
-                    return Center(child: LoadingIndicator());
-
-                  if (snapshot.hasError)
-                    return Center(
-                      child: Column(
+      body: FutureBuilder<Post>(
+        future: _postFuture,
+        builder: (context, snapshot) {
+          if (_isLoading || snapshot.connectionState != ConnectionState.done) {
+            return Center(child: LoadingIndicator());
+          }
+          if (snapshot.hasError || !snapshot.hasData) {
+            return Center(child: Text('Error: ${snapshot.error ?? 'No data'}'));
+          }
+          final post = snapshot.data!;
+          final canEdit = true; // TODO: logic xác định quyền edit
+          final canDelete = true; // TODO: logic xác định quyền delete
+          return Center(
+            child: SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: 500),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 32,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      if (post.image != null && post.image!.isNotEmpty)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Image.network(
+                            post.image!.startsWith('http')
+                                ? post.image!
+                                : '${ApiConfig.baseUrl}${post.image!}',
+                            width: double.infinity,
+                            height: 320,
+                            fit: BoxFit.cover,
+                            errorBuilder:
+                                (_, __, ___) => Container(
+                                  height: 120,
+                                  color: Colors.grey[200],
+                                  alignment: Alignment.center,
+                                  child: Icon(
+                                    Icons.image_not_supported,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                          ),
+                        ),
+                      SizedBox(height: 24),
+                      Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text('Error loading post: ${snapshot.error}'),
-                          SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: _loadPostData,
-                            child: Text('Retry'),
+                          CircleAvatar(
+                            radius: 24,
+                            backgroundColor: Colors.grey[200],
+                            child: Text(
+                              post.authorName.isNotEmpty
+                                  ? post.authorName[0].toUpperCase()
+                                  : '?',
+                              style: TextStyle(
+                                fontSize: 20,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 16),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                post.authorName,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                post.createdAt,
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    );
-
-                  if (!snapshot.hasData)
-                    return Center(child: Text('Post not found'));
-
-                  final post = snapshot.data!;
-
-                  return SingleChildScrollView(
-                    child: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildImage(post.image),
-                          SizedBox(height: 16),
-                          if (post.text != null && post.text!.isNotEmpty)
-                            Text(post.text!, style: TextStyle(fontSize: 18)),
-                          SizedBox(height: 8),
-                          if (post.address != null && post.address!.isNotEmpty)
+                      SizedBox(height: 24),
+                      if (post.text != null && post.text!.isNotEmpty)
+                        Text(post.text!, style: TextStyle(fontSize: 17)),
+                      SizedBox(height: 16),
+                      if (post.address != null && post.address!.isNotEmpty)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.location_on,
+                              color: Colors.black87,
+                              size: 20,
+                            ),
+                            SizedBox(width: 6),
                             Text(
                               post.address!,
-                              style: TextStyle(color: Colors.grey[700]),
+                              style: TextStyle(
+                                color: Colors.grey[700],
+                                fontSize: 15,
+                              ),
                             ),
-                          SizedBox(height: 16),
-                          Text(
-                            'Created: ${post.createdAt}',
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ],
+                        ),
+                      SizedBox(height: 32),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (canEdit)
+                            ElevatedButton(
+                              onPressed: () async {
+                                if (post.id.isEmpty || _token.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Thiếu thông tin post hoặc token!',
+                                      ),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                final result = await Navigator.pushNamed(
+                                  context,
+                                  '/edit',
+                                  arguments: {'id': post.id, 'token': _token},
+                                );
+                                if (result == true) {
+                                  _loadPostData();
+                                }
+                              },
+                              child: Text('Edit'),
+                            ),
+                          if (canDelete) SizedBox(width: 16),
+                          if (canDelete)
+                            OutlinedButton(
+                              onPressed: _isDeleting ? null : _deletePost,
+                              child:
+                                  _isDeleting
+                                      ? SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                      : Text('Delete'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.red,
+                                side: BorderSide(color: Colors.red),
+                              ),
+                            ),
+                          SizedBox(width: 16),
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (_) => EditHistoryScreen(
+                                        postId: post.id,
+                                        token: _token,
+                                      ),
+                                ),
+                              );
+                            },
+                            child: Text('History'),
                           ),
                         ],
                       ),
-                    ),
-                  );
-                },
+                    ],
+                  ),
+                ),
               ),
+            ),
+          );
+        },
+      ),
     );
   }
 }

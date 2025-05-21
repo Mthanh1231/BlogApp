@@ -141,10 +141,23 @@ app.get('/auth/google/callback',
       config.SECRET,
       { expiresIn: '1h' }
     );
-    // Redirect về frontend Flutter (hoặc trả về token tuỳ ý)
-    res.json({ token });
-    // Nếu muốn trả về JSON:
-    // res.json({ token });
+    // Trả về trang HTML với nút Tiếp tục (deep link)
+    res.send(`
+      <html>
+        <head>
+          <title>Đăng nhập thành công</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        </head>
+        <body style="font-family:sans-serif;text-align:center;margin-top:50px;">
+          <h2>Đăng nhập thành công!</h2>
+          <p>Vui lòng chọn <b>Tiếp tục</b> để vào ứng dụng.</p>
+          <button 
+            style="padding:10px 20px;font-size:16px;cursor:pointer;"
+            onclick="window.location.href='myblogapp://login?token=${token}'"
+          >Tiếp tục</button>
+        </body>
+      </html>
+    `);
   }
 );
 

@@ -71,24 +71,74 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('User Profile'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: () {
-              setState(() {
-                _isLoading = true;
-              });
-              _loadUserProfile();
-            },
-          ),
-        ],
+      backgroundColor: Colors.white,
+      appBar: AppBar(title: const Text('Profile'), centerTitle: true),
+      body: FutureBuilder<User>(
+        future: _profileFuture,
+        builder: (context, snapshot) {
+          if (_isLoading ||
+              snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: LoadingIndicator());
+          }
+          if (snapshot.hasError || !snapshot.hasData) {
+            return Center(child: Text('Error: ${snapshot.error ?? 'No data'}'));
+          }
+          final user = snapshot.data!;
+          return Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                CircleAvatar(
+                  radius: 48,
+                  backgroundColor: Colors.grey[200],
+                  child: Text(
+                    user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                    style: TextStyle(fontSize: 32, color: Colors.black),
+                  ),
+                ),
+                SizedBox(height: 24),
+                Card(
+                  elevation: 1,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  color: Colors.white,
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Username', style: TextStyle(color: Colors.grey)),
+                        SizedBox(height: 4),
+                        Text(
+                          user.name,
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        SizedBox(height: 16),
+                        Text('Email', style: TextStyle(color: Colors.grey)),
+                        SizedBox(height: 4),
+                        Text(
+                          user.email,
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _logout,
+                    child: Text('Logout'),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
-      body:
-          _isLoading
-              ? Center(child: LoadingIndicator())
-              : _buildProfileContent(),
     );
   }
 
@@ -191,5 +241,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
+  }
+
+  void _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('token');
+    if (mounted) {
+      Navigator.pushReplacementNamed(context, '/login');
+    }
   }
 }

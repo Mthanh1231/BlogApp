@@ -137,9 +137,11 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Create new post'),
         centerTitle: true,
+        backgroundColor: Colors.white,
         leading: const BackButton(),
         actions: [
           Padding(
@@ -165,106 +167,111 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 ),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent,
+                backgroundColor: Colors.black,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
+                  horizontal: 16,
+                  vertical: 12,
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(16),
                 ),
               ),
             ),
           ),
         ],
       ),
-      body: Row(
-        children: [
-          // Left panel: Image picker / preview
-          Expanded(
-            flex: 2,
-            child: GestureDetector(
-              onTap: _pickImage,
-              child: Container(
-                color: Colors.black12,
-                child:
-                    _imageData == null
-                        ? Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.cloud_upload,
-                                size: 64,
-                                color: Colors.black38,
-                              ),
-                              const SizedBox(height: 12),
-                              ElevatedButton(
-                                onPressed: _pickImage,
-                                child: const Text('Select from computer'),
-                              ),
-                            ],
-                          ),
-                        )
-                        : Image.memory(_imageData!, fit: BoxFit.contain),
-              ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth < 600;
+          final imageWidget = GestureDetector(
+            onTap: _pickImage,
+            child: Container(
+              color: Colors.white,
+              child:
+                  _imageData == null
+                      ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.cloud_upload,
+                              size: 64,
+                              color: Colors.black26,
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              'Tap to add image',
+                              style: TextStyle(color: Colors.black54),
+                            ),
+                          ],
+                        ),
+                      )
+                      : ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.memory(
+                          _imageData!,
+                          fit: BoxFit.cover,
+                          width: isMobile ? double.infinity : 260,
+                          height: isMobile ? 220 : 320,
+                        ),
+                      ),
             ),
-          ),
-
-          // Right panel: Caption & location
-          Expanded(
-            flex: 3,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Username thực tế
-                    Row(
-                      children: [
-                        CircleAvatar(
-                          child: Text(
-                            _currentUser?.name.isNotEmpty == true
-                                ? _currentUser!.name[0].toUpperCase()
-                                : '?',
-                          ),
-                        ),
-                        SizedBox(width: 12),
-                        Text(
-                          _currentUser?.name ?? 'Loading...',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    // Caption field
-                    TextField(
-                      controller: _captionCtrl,
-                      maxLines: null,
-                      maxLength: 2200,
-                      decoration: const InputDecoration(
-                        hintText: 'Write a caption…',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    // Location field
-                    TextField(
-                      controller: _locationCtrl,
-                      decoration: const InputDecoration(
-                        hintText: 'Add location',
-                        prefixIcon: Icon(Icons.location_on_outlined),
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ],
+          );
+          final formWidget = Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: _captionCtrl,
+                  decoration: InputDecoration(labelText: 'Caption'),
+                  maxLines: 3,
                 ),
-              ),
+                SizedBox(height: 20),
+                TextField(
+                  controller: _locationCtrl,
+                  decoration: InputDecoration(labelText: 'Location'),
+                ),
+                SizedBox(height: 28),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _sharing ? null : _share,
+                    child:
+                        _sharing
+                            ? SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                            : Text('Share'),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
+          );
+          if (isMobile) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [imageWidget, SizedBox(height: 24), formWidget],
+              ),
+            );
+          } else {
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(flex: 2, child: imageWidget),
+                Expanded(flex: 3, child: formWidget),
+              ],
+            );
+          }
+        },
       ),
     );
   }
